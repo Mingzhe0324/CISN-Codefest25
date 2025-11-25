@@ -3,294 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xenber | Enterprise AI Ops (SaaS)</title>
+    <title>Xenber | Enterprise AI Ops</title>
     
-    <!-- Tailwind CSS -->
+    <!-- 1. Libraries: Tailwind (Style), Chart.js (Graphs), FontAwesome (Icons) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* Simple styling tweaks */
         body { background-color: #f3f4f6; }
-        .saas-card { background: white; border: 1px solid #e5e7eb; border-radius: 0.75rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-        .saas-sidebar { background: #0f172a; color: #94a3b8; }
-        .saas-nav-item { cursor: pointer; }
-        .saas-nav-item:hover { background: #1e293b; color: white; }
-        .saas-active { background: #2563eb; color: white; }
+        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; }
+        .nav-item:hover { background-color: #1e293b; color: white; cursor: pointer; }
+        .nav-active { background-color: #2563eb; color: white; }
         
-        /* Interactive Source Classes */
-        .source-item { transition: all 0.2s; border: 1px solid transparent; }
-        .source-item:hover { background-color: #1e293b; }
-        .source-active { background-color: #1e293b; border-color: #3b82f6; }
-        
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-        .alert-item { animation: slideIn 0.3s ease-out; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .insight-item { animation: fadeIn 0.4s ease-out; }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 20px; }
+        /* Custom Scrollbar to make it look professional */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="font-sans text-slate-800 antialiased overflow-hidden h-screen flex">
+<body class="font-sans text-slate-800 h-screen flex overflow-hidden">
 
-    <!-- 1. SAAS SIDEBAR -->
-    <aside class="saas-sidebar w-64 flex-shrink-0 flex flex-col transition-all duration-300">
-        <div class="h-16 flex items-center px-6 border-b border-slate-800">
-            <div class="text-white font-bold text-xl tracking-tight flex items-center gap-2">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">X</div>
-                XENBER AI
-            </div>
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="w-64 bg-slate-900 text-slate-400 flex flex-col">
+        <div class="h-16 flex items-center px-6 text-white font-bold text-xl border-b border-slate-800">
+            <i class="fa-solid fa-robot mr-2 text-blue-500"></i> XENBER AI
         </div>
-        
-        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            <div class="text-xs font-semibold uppercase tracking-wider mb-2 mt-2 px-2">Core Modules</div>
-            
-            <!-- NAVIGATION LINKS -->
-            <div onclick="nav.switch('dashboard')" id="nav-dashboard" class="saas-nav-item saas-active flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition">
-                <i class="fa-solid fa-gauge-high w-6"></i> Operational Dashboard
-            </div>
-            <div onclick="nav.switch('workforce')" id="nav-workforce" class="saas-nav-item flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition">
-                <i class="fa-solid fa-users w-6"></i> Workforce Intelligence
-            </div>
-            <div onclick="nav.switch('resources')" id="nav-resources" class="saas-nav-item flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition">
-                <i class="fa-solid fa-robot w-6"></i> Predictive Maint.
-            </div>
-            
-            <!-- CLOUD CONNECTORS -->
-            <div class="text-xs font-semibold uppercase tracking-wider mb-2 mt-8 px-2">Cloud Connectors</div>
-            <div class="bg-slate-900 rounded-md p-2 space-y-2">
-                
-                <div id="btn-bq" onclick="cloudManager.switchSource('bq')" class="source-item source-active rounded p-2 cursor-pointer flex items-center justify-between group">
-                    <div class="flex items-center gap-2 text-sm text-slate-300 group-hover:text-white">
-                        <i class="fa-brands fa-google text-blue-400"></i> BigQuery
-                    </div>
-                    <span id="dot-bq" class="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.6)]"></span>
-                </div>
 
-                <div id="btn-azure" onclick="cloudManager.switchSource('azure')" class="source-item rounded p-2 cursor-pointer flex items-center justify-between group">
-                    <div class="flex items-center gap-2 text-sm text-slate-300 group-hover:text-white">
-                        <i class="fa-brands fa-microsoft text-purple-400"></i> Azure Synapse
-                    </div>
-                    <span id="dot-azure" class="w-2 h-2 rounded-full bg-slate-600"></span>
-                </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <div class="text-xs uppercase font-bold mb-2">Menu</div>
+            
+            <!-- Clicking these calls the 'switchView' function in our script -->
+            <div onclick="switchView('dashboard')" id="btn-dashboard" class="nav-item nav-active p-3 rounded flex items-center gap-3">
+                <i class="fa-solid fa-gauge"></i> Dashboard
+            </div>
+            <div onclick="switchView('workforce')" id="btn-workforce" class="nav-item p-3 rounded flex items-center gap-3">
+                <i class="fa-solid fa-users"></i> Workforce
+            </div>
+            <div onclick="switchView('maintenance')" id="btn-maintenance" class="nav-item p-3 rounded flex items-center gap-3">
+                <i class="fa-solid fa-wrench"></i> Maintenance
+            </div>
 
-                <div class="border-t border-slate-700 pt-2 px-1">
-                    <div class="flex justify-between text-[10px] text-slate-500">
-                        <span>Latency:</span>
-                        <span id="latency-display" class="font-mono text-green-400">24ms</span>
-                    </div>
-                    <div class="flex justify-between text-[10px] text-slate-500">
-                        <span>Status:</span>
-                        <span id="status-display" class="font-bold text-blue-400">Streaming</span>
-                    </div>
+            <!-- Cloud Switcher (BigQuery vs Azure) -->
+            <div class="mt-8 text-xs uppercase font-bold mb-2">Data Source</div>
+            <div onclick="toggleCloud()" class="p-3 bg-slate-800 rounded cursor-pointer hover:bg-slate-700 border border-slate-700">
+                <div class="flex justify-between items-center">
+                    <span id="cloud-name" class="text-white font-bold">Google BigQuery</span>
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                 </div>
+                <div class="text-xs mt-1 text-blue-400">Status: Connected</div>
             </div>
         </nav>
-
-        <div class="p-4 border-t border-slate-800">
-            <div class="flex items-center gap-3">
-                <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" class="w-9 h-9 rounded-full bg-slate-700">
-                <div>
-                    <div class="text-sm font-medium text-white">SysAdmin</div>
-                    <div class="text-xs text-blue-400">Enterprise Plan</div>
-                </div>
-            </div>
-        </div>
     </aside>
 
-    <!-- 2. MAIN APP CONTENT -->
-    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col h-screen">
         
-        <!-- TOP HEADER -->
-        <header class="h-16 bg-white border-b border-slate-200 flex justify-between items-center px-8 shadow-sm">
-            <div>
-                <h2 id="page-title" class="text-lg font-bold text-slate-800">Operational Intelligence Center</h2>
-                <div class="text-xs text-slate-500">Source: <span id="header-source-label" class="font-mono bg-slate-100 px-1 rounded text-blue-600">bigquery.xenber.prod.v2</span></div>
-            </div>
-            <div class="flex items-center gap-4">
-                <div id="connection-badge" class="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-200 transition-all">
-                    <i class="fa-solid fa-link"></i>
-                    Connected
-                </div>
-                <button onclick="system.resetSimulation()" class="text-sm text-slate-500 hover:text-blue-600 transition">
-                    <i class="fa-solid fa-rotate"></i> Sync
-                </button>
-            </div>
+        <!-- Header -->
+        <header class="h-16 bg-white border-b flex justify-between items-center px-8 shadow-sm">
+            <h2 id="header-title" class="text-xl font-bold">Operational Dashboard</h2>
+            <button onclick="resetSimulation()" class="text-sm text-slate-500 hover:text-blue-600">
+                <i class="fa-solid fa-rotate-right"></i> Reset System
+            </button>
         </header>
 
-        <!-- MAIN VIEW CONTAINER -->
-        <main class="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50">
-            <div class="max-w-[1600px] mx-auto">
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto p-8">
+            
+            <!-- VIEW 1: THE DASHBOARD (Charts & Summaries) -->
+            <div id="view-dashboard" class="space-y-6">
+                
+                <!-- 3 KPI Cards -->
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="card border-l-4 border-blue-500">
+                        <div class="text-xs font-bold text-slate-500 uppercase">Current Load</div>
+                        <div class="text-3xl font-bold" id="kpi-load">0%</div>
+                    </div>
+                    <div class="card border-l-4 border-green-500">
+                        <div class="text-xs font-bold text-slate-500 uppercase">Projected Savings</div>
+                        <div class="text-3xl font-bold text-green-600" id="kpi-savings">$0</div>
+                    </div>
+                    <div class="card border-l-4 border-amber-500">
+                        <div class="text-xs font-bold text-slate-500 uppercase">Active Alerts</div>
+                        <div class="text-3xl font-bold text-amber-600" id="kpi-alerts">0</div>
+                    </div>
+                </div>
 
-                <!-- VIEW 1: DASHBOARD (Default) -->
-                <div id="view-dashboard" class="space-y-6 animate-fade">
+                <!-- The Forecasting Chart -->
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="col-span-2 card">
+                        <h3 class="font-bold mb-4">AI Demand Forecast (Next 24h)</h3>
+                        <div class="h-64"><canvas id="mainChart"></canvas></div>
+                    </div>
                     
-                    <!-- Metrics Row -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="saas-card p-5 border-l-4 border-blue-500">
-                            <div class="text-slate-500 text-xs font-bold uppercase mb-1">Resource Utilization</div>
-                            <div class="flex justify-between items-end">
-                                <div class="text-3xl font-bold text-slate-800" id="kpi-load">--%</div>
-                                <div class="text-xs font-medium text-slate-500">Current Load</div>
-                            </div>
-                        </div>
-                        <div class="saas-card p-5 border-l-4 border-emerald-500">
-                            <div class="text-slate-500 text-xs font-bold uppercase mb-1">Forecasted Savings</div>
-                            <div class="flex justify-between items-end">
-                                <div class="text-3xl font-bold text-emerald-600 font-mono" id="kpi-savings">$--</div>
-                                <div class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded">Monthly Proj.</div>
-                            </div>
-                        </div>
-                        <div class="saas-card p-5 border-l-4 border-amber-500">
-                            <div class="text-slate-500 text-xs font-bold uppercase mb-1">Active Anomalies</div>
-                            <div class="flex justify-between items-end">
-                                <div class="text-3xl font-bold text-amber-600" id="kpi-anomalies">0</div>
-                                <div class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded">Risk Alerts</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Forecasting & Strategy -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 saas-card p-6">
-                            <div class="flex justify-between items-center mb-6">
-                                <div>
-                                    <h3 class="font-bold text-lg text-slate-800">Demand Forecasting</h3>
-                                    <p id="chart-subtitle" class="text-xs text-slate-400 font-mono mt-1"><i class="fa-brands fa-google"></i> Powered by BigQuery ML</p>
-                                </div>
-                                <div class="flex gap-3 text-xs">
-                                    <span class="flex items-center gap-1"><div id="legend-actual" class="w-3 h-1 bg-blue-500"></div> Actual</span>
-                                    <span class="flex items-center gap-1"><div class="w-3 h-1 bg-indigo-400 border-dashed border-b-2"></div> Predicted</span>
-                                </div>
-                            </div>
-                            <div class="h-64 w-full">
-                                <canvas id="forecastChart"></canvas>
-                            </div>
-                        </div>
-
-                        <div class="bg-slate-900 text-white rounded-xl shadow-xl overflow-hidden flex flex-col h-full">
-                            <div class="p-5 bg-gradient-to-r from-indigo-900 to-slate-900 border-b border-slate-700">
-                                <div class="flex items-center gap-3 mb-1">
-                                    <i class="fa-solid fa-lightbulb text-indigo-400"></i>
-                                    <h2 class="font-bold text-base">Strategic Advisor</h2>
-                                </div>
-                                <p class="text-xs text-indigo-200">AI Growth Recommendations</p>
-                            </div>
-                            <div class="p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar" id="strategy-feed">
-                                <div class="text-center text-slate-500 text-sm py-8">Waiting for data stream...</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Widgets Row -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Widget: Scheduler -->
-                        <div class="saas-card flex flex-col h-[400px]">
-                            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                                <h3 class="font-bold text-lg text-slate-800">Resource Scheduler</h3>
-                                <button onclick="nav.switch('resources')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition">View All</button>
-                            </div>
-                            <div class="flex-1 overflow-y-auto p-0 custom-scrollbar">
-                                <table class="w-full text-left text-sm">
-                                    <thead class="bg-slate-50 sticky top-0">
-                                        <tr>
-                                            <th class="px-5 py-3 font-semibold text-slate-500 text-xs uppercase">Asset</th>
-                                            <th class="px-5 py-3 font-semibold text-slate-500 text-xs uppercase text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="scheduler-table-widget" class="divide-y divide-slate-100"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Widget: Workforce -->
-                        <div class="saas-card flex flex-col h-[400px]">
-                            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                                <h3 class="font-bold text-lg text-slate-800">Workforce AI</h3>
-                                <button onclick="nav.switch('workforce')" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded transition">View All</button>
-                            </div>
-                            <div class="flex-1 overflow-y-auto p-0 custom-scrollbar">
-                                <table class="w-full text-left text-sm">
-                                    <thead class="bg-slate-50 sticky top-0">
-                                        <tr>
-                                            <th class="px-5 py-3 font-semibold text-slate-500 text-xs uppercase">Employee</th>
-                                            <th class="px-5 py-3 font-semibold text-slate-500 text-xs uppercase text-right">Score</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="employee-table-widget" class="divide-y divide-slate-100"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Widget: Anomalies -->
-                        <div class="saas-card flex flex-col h-[400px]">
-                            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                    <i class="fa-solid fa-radar text-amber-500"></i> Anomaly Detection
-                                </h3>
-                                <span class="text-xs bg-amber-50 text-amber-600 px-2 py-1 rounded">Real-time</span>
-                            </div>
-                            <div class="flex-1 overflow-y-auto space-y-3 p-5 custom-scrollbar" id="anomaly-feed">
-                                <div class="text-center text-slate-400 text-sm mt-10 italic">System Nominal. Scanning...</div>
-                            </div>
+                    <!-- Strategic Advisor Panel -->
+                    <div class="bg-slate-900 text-white rounded-xl p-5 shadow-lg flex flex-col">
+                        <h3 class="font-bold border-b border-slate-700 pb-2 mb-2">
+                            <i class="fa-solid fa-lightbulb text-yellow-400"></i> AI Advisor
+                        </h3>
+                        <div id="advisor-feed" class="space-y-3 overflow-y-auto flex-1">
+                            <div class="text-sm text-slate-400 italic">Analyzing data stream...</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- VIEW 2: WORKFORCE FULL (Hidden by default) -->
-                <div id="view-workforce" class="hidden space-y-6 animate-fade">
-                    <div class="saas-card p-6">
-                        <h3 class="font-bold text-xl text-slate-800 mb-4">Workforce Intelligence Hub</h3>
-                        <div class="overflow-x-auto">
+                <!-- Bottom Row: Tables -->
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="card h-80 overflow-hidden flex flex-col">
+                        <h3 class="font-bold mb-2 text-slate-700">Workforce Issues</h3>
+                        <div class="flex-1 overflow-y-auto">
                             <table class="w-full text-left text-sm">
-                                <thead class="bg-slate-50 border-b border-slate-200">
-                                    <tr>
-                                        <th class="p-4 font-semibold text-slate-500">Employee Name</th>
-                                        <th class="p-4 font-semibold text-slate-500">Role</th>
-                                        <th class="p-4 font-semibold text-slate-500">Fatigue Level</th>
-                                        <th class="p-4 font-semibold text-slate-500">Efficiency Score</th>
-                                        <th class="p-4 font-semibold text-slate-500 text-right">Recommended Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="employee-table-full" class="divide-y divide-slate-100"></tbody>
+                                <tbody id="dash-workforce-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card h-80 overflow-hidden flex flex-col">
+                        <h3 class="font-bold mb-2 text-slate-700">Maintenance Requests</h3>
+                        <div class="flex-1 overflow-y-auto">
+                            <table class="w-full text-left text-sm">
+                                <tbody id="dash-resource-table"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-
-                <!-- VIEW 3: RESOURCES FULL (Hidden by default) -->
-                <div id="view-resources" class="hidden space-y-6 animate-fade">
-                    <div class="saas-card p-6">
-                        <h3 class="font-bold text-xl text-slate-800 mb-4">Predictive Maintenance Schedule</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm">
-                                <thead class="bg-slate-50 border-b border-slate-200">
-                                    <tr>
-                                        <th class="p-4 font-semibold text-slate-500">Asset ID</th>
-                                        <th class="p-4 font-semibold text-slate-500">Type</th>
-                                        <th class="p-4 font-semibold text-slate-500">Current Health</th>
-                                        <th class="p-4 font-semibold text-slate-500">Current Load</th>
-                                        <th class="p-4 font-semibold text-slate-500 text-right">Maintenance Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="scheduler-table-full" class="divide-y divide-slate-100"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
             </div>
+
+            <!-- VIEW 2: WORKFORCE (Full Roster) -->
+            <div id="view-workforce" class="hidden space-y-6">
+                <div class="card">
+                    <h3 class="font-bold text-xl mb-4">Employee Roster & Performance</h3>
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-b">
+                            <tr>
+                                <th class="p-4">Name</th>
+                                <th class="p-4">Role</th>
+                                <th class="p-4">Fatigue</th>
+                                <th class="p-4">Performance</th>
+                                <th class="p-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="full-workforce-table" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VIEW 3: MAINTENANCE (All Machines) -->
+            <div id="view-maintenance" class="hidden space-y-6">
+                <div class="card">
+                    <h3 class="font-bold text-xl mb-4">Asset Health & Scheduling</h3>
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-b">
+                            <tr>
+                                <th class="p-4">Machine Name</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4">Health</th>
+                                <th class="p-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="full-resource-table" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- Connect the AI Logic -->
+    <!-- Connect the simplified logic -->
     <script src="script.js"></script>
 </body>
 </html>
