@@ -5,26 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xenber | Enterprise AI Ops</title>
     
-    <!-- 1. Libraries: Tailwind (Style), Chart.js (Graphs), FontAwesome (Icons) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Simple styling tweaks */
         body { background-color: #f3f4f6; }
         .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; }
+        
+        /* Navigation & Animations */
         .nav-item:hover { background-color: #1e293b; color: white; cursor: pointer; }
         .nav-active { background-color: #2563eb; color: white; }
         
-        /* Custom Scrollbar to make it look professional */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        #chat-window { transition: all 0.3s ease-in-out; transform-origin: bottom right; }
+        .chat-hidden { transform: scale(0); opacity: 0; pointer-events: none; }
+        .chat-visible { transform: scale(1); opacity: 1; pointer-events: auto; }
     </style>
 </head>
 <body class="font-sans text-slate-800 h-screen flex overflow-hidden">
 
-    <!-- SIDEBAR NAVIGATION -->
     <aside class="w-64 bg-slate-900 text-slate-400 flex flex-col">
         <div class="h-16 flex items-center px-6 text-white font-bold text-xl border-b border-slate-800">
             <i class="fa-solid fa-robot mr-2 text-blue-500"></i> XENBER AI
@@ -32,21 +31,18 @@
 
         <nav class="flex-1 p-4 space-y-2">
             <div class="text-xs uppercase font-bold mb-2">Menu</div>
-            
-            <!-- Clicking these calls the 'switchView' function in our script -->
-            <div onclick="switchView('dashboard')" id="btn-dashboard" class="nav-item nav-active p-3 rounded flex items-center gap-3">
+            <div onclick="showPage('dashboard')" id="btn-dashboard" class="nav-item nav-active p-3 rounded flex items-center gap-3">
                 <i class="fa-solid fa-gauge"></i> Dashboard
             </div>
-            <div onclick="switchView('workforce')" id="btn-workforce" class="nav-item p-3 rounded flex items-center gap-3">
+            <div onclick="showPage('workforce')" id="btn-workforce" class="nav-item p-3 rounded flex items-center gap-3">
                 <i class="fa-solid fa-users"></i> Workforce
             </div>
-            <div onclick="switchView('maintenance')" id="btn-maintenance" class="nav-item p-3 rounded flex items-center gap-3">
+            <div onclick="showPage('maintenance')" id="btn-maintenance" class="nav-item p-3 rounded flex items-center gap-3">
                 <i class="fa-solid fa-wrench"></i> Maintenance
             </div>
 
-            <!-- Cloud Switcher (BigQuery vs Azure) -->
             <div class="mt-8 text-xs uppercase font-bold mb-2">Data Source</div>
-            <div onclick="toggleCloud()" class="p-3 bg-slate-800 rounded cursor-pointer hover:bg-slate-700 border border-slate-700">
+            <div onclick="toggleCloudSource()" class="p-3 bg-slate-800 rounded cursor-pointer hover:bg-slate-700 border border-slate-700">
                 <div class="flex justify-between items-center">
                     <span id="cloud-name" class="text-white font-bold">Google BigQuery</span>
                     <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -56,119 +52,127 @@
         </nav>
     </aside>
 
-    <!-- MAIN CONTENT AREA -->
-    <div class="flex-1 flex flex-col h-screen">
+    <div class="flex-1 flex flex-col h-screen relative">
         
-        <!-- Header -->
         <header class="h-16 bg-white border-b flex justify-between items-center px-8 shadow-sm">
-            <h2 id="header-title" class="text-xl font-bold">Operational Dashboard</h2>
-            <button onclick="resetSimulation()" class="text-sm text-slate-500 hover:text-blue-600">
+            <div class="flex items-center gap-4">
+                <h2 id="page-title" class="text-xl font-bold">Operational Dashboard</h2>
+                <div id="live-clock" class="text-sm bg-slate-100 px-3 py-1 rounded text-slate-500 font-mono border">
+                    00:00:00
+                </div>
+            </div>
+
+            <button onclick="resetSystem()" class="text-sm text-slate-500 hover:text-blue-600">
                 <i class="fa-solid fa-rotate-right"></i> Reset System
             </button>
         </header>
 
-        <!-- Scrollable Content -->
         <main class="flex-1 overflow-y-auto p-8">
             
-            <!-- VIEW 1: THE DASHBOARD (Charts & Summaries) -->
-            <div id="view-dashboard" class="space-y-6">
-                
-                <!-- 3 KPI Cards -->
+            <div id="page-dashboard" class="space-y-6">
                 <div class="grid grid-cols-3 gap-6">
                     <div class="card border-l-4 border-blue-500">
                         <div class="text-xs font-bold text-slate-500 uppercase">Current Load</div>
-                        <div class="text-3xl font-bold" id="kpi-load">0%</div>
+                        <div class="text-3xl font-bold" id="display-load">0%</div>
                     </div>
                     <div class="card border-l-4 border-green-500">
                         <div class="text-xs font-bold text-slate-500 uppercase">Projected Savings</div>
-                        <div class="text-3xl font-bold text-green-600" id="kpi-savings">$0</div>
+                        <div class="text-3xl font-bold text-green-600" id="display-savings">$0</div>
                     </div>
                     <div class="card border-l-4 border-amber-500">
                         <div class="text-xs font-bold text-slate-500 uppercase">Active Alerts</div>
-                        <div class="text-3xl font-bold text-amber-600" id="kpi-alerts">0</div>
+                        <div class="text-3xl font-bold text-amber-600" id="display-alerts">0</div>
                     </div>
                 </div>
 
-                <!-- The Forecasting Chart -->
                 <div class="grid grid-cols-3 gap-6">
                     <div class="col-span-2 card">
-                        <h3 class="font-bold mb-4">AI Demand Forecast (Next 24h)</h3>
+                        <h3 class="font-bold mb-4">AI Demand Forecast (Live Stream)</h3>
                         <div class="h-64"><canvas id="mainChart"></canvas></div>
                     </div>
                     
-                    <!-- Strategic Advisor Panel -->
                     <div class="bg-slate-900 text-white rounded-xl p-5 shadow-lg flex flex-col">
                         <h3 class="font-bold border-b border-slate-700 pb-2 mb-2">
-                            <i class="fa-solid fa-lightbulb text-yellow-400"></i> AI Advisor
+                            <i class="fa-solid fa-lightbulb text-yellow-400"></i> Live Insights
                         </h3>
-                        <div id="advisor-feed" class="space-y-3 overflow-y-auto flex-1">
-                            <div class="text-sm text-slate-400 italic">Analyzing data stream...</div>
+                        <div id="advisor-feed" class="space-y-3 overflow-y-auto flex-1 text-sm">
+                            <div class="text-slate-400 italic">Initializing AI...</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Bottom Row: Tables -->
                 <div class="grid grid-cols-2 gap-6">
                     <div class="card h-80 overflow-hidden flex flex-col">
                         <h3 class="font-bold mb-2 text-slate-700">Workforce Issues</h3>
                         <div class="flex-1 overflow-y-auto">
-                            <table class="w-full text-left text-sm">
-                                <tbody id="dash-workforce-table"></tbody>
-                            </table>
+                            <table class="w-full text-left text-sm"><tbody id="mini-table-workforce"></tbody></table>
                         </div>
                     </div>
                     <div class="card h-80 overflow-hidden flex flex-col">
                         <h3 class="font-bold mb-2 text-slate-700">Maintenance Requests</h3>
                         <div class="flex-1 overflow-y-auto">
-                            <table class="w-full text-left text-sm">
-                                <tbody id="dash-resource-table"></tbody>
-                            </table>
+                            <table class="w-full text-left text-sm"><tbody id="mini-table-machines"></tbody></table>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- VIEW 2: WORKFORCE (Full Roster) -->
-            <div id="view-workforce" class="hidden space-y-6">
+            <div id="page-workforce" class="hidden space-y-6">
                 <div class="card">
                     <h3 class="font-bold text-xl mb-4">Employee Roster & Performance</h3>
                     <table class="w-full text-left">
                         <thead class="bg-slate-50 border-b">
                             <tr>
-                                <th class="p-4">Name</th>
-                                <th class="p-4">Role</th>
-                                <th class="p-4">Fatigue</th>
-                                <th class="p-4">Performance</th>
-                                <th class="p-4 text-right">Action</th>
+                                <th class="p-4">Name</th><th class="p-4">Role</th><th class="p-4">Fatigue</th><th class="p-4">Score</th><th class="p-4 text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="full-workforce-table" class="divide-y"></tbody>
+                        <tbody id="full-table-workforce" class="divide-y"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- VIEW 3: MAINTENANCE (All Machines) -->
-            <div id="view-maintenance" class="hidden space-y-6">
+            <div id="page-maintenance" class="hidden space-y-6">
                 <div class="card">
                     <h3 class="font-bold text-xl mb-4">Asset Health & Scheduling</h3>
                     <table class="w-full text-left">
                         <thead class="bg-slate-50 border-b">
                             <tr>
-                                <th class="p-4">Machine Name</th>
-                                <th class="p-4">Status</th>
-                                <th class="p-4">Health</th>
-                                <th class="p-4 text-right">Action</th>
+                                <th class="p-4">Machine Name</th><th class="p-4">Type</th><th class="p-4">Health</th><th class="p-4 text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="full-resource-table" class="divide-y"></tbody>
+                        <tbody id="full-table-machines" class="divide-y"></tbody>
                     </table>
                 </div>
             </div>
-
         </main>
+
+        <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+            <div id="chat-window" class="chat-hidden mb-4 w-80 h-96 bg-white rounded-xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+                <div class="bg-slate-900 text-white p-3 flex justify-between items-center">
+                    <div class="font-bold text-sm"><i class="fa-solid fa-robot text-blue-400"></i> Xenber Assistant</div>
+                    <button onclick="toggleChatVisibility()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="chat-messages" class="flex-1 p-3 bg-slate-50 overflow-y-auto space-y-3 text-sm">
+                    <div class="flex justify-start">
+                        <div class="bg-slate-200 text-slate-800 p-2 rounded-lg rounded-tl-none max-w-[85%]">
+                            Hello! I am connected to your Ops Data. Ask me about your <b>staff</b>, <b>money</b>, or <b>machines</b>.
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 border-t bg-white flex gap-2">
+                    <input type="text" id="chat-input" placeholder="Type here..." class="flex-1 border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500" onkeypress="checkEnterKey(event)">
+                    <button onclick="handleUserMessage()" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+            <button onclick="toggleChatVisibility()" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-blue-700 transition transform hover:scale-105">
+                <i class="fa-solid fa-comment-dots"></i>
+            </button>
+        </div>
+
     </div>
 
-    <!-- Connect the simplified logic -->
     <script src="script.js"></script>
 </body>
 </html>
