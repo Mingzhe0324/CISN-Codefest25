@@ -26,31 +26,37 @@
         .chat-hidden { transform: scale(0); opacity: 0; pointer-events: none; }
         .chat-visible { transform: scale(1); opacity: 1; pointer-events: auto; }
 
-        /* --- PRESSABLE BUTTON STYLES --- */
+        /* --- STATUS BADGE STYLES (Dynamic Display) --- */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 12px;
+            border-radius: 9999px; /* Pill shape */
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        /* Status Colors (Backgrounds & Text) */
+        .badge-red { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .badge-amber { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .badge-green { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .badge-blue { background-color: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+
+        /* Button Actions (Global) */
         .btn-action { 
             transition: all 0.1s ease-in-out; 
             border-bottom-width: 3px;
             border-bottom-style: solid;
-            transform: translateY(0);
-            cursor: pointer; /* Ensure pointer shows */
-            position: relative;
-            z-index: 10; /* Ensure clickability */
+            cursor: pointer;
         }
-        .btn-action:hover { 
-            filter: brightness(1.1); 
-            transform: translateY(-1px);
-        }
-        .btn-action:active { 
-            border-bottom-width: 0px; 
-            transform: translateY(3px); 
-            margin-bottom: 3px; 
-        }
-
-        /* Button Colors */
-        .btn-red { background-color: #ef4444; color: white; border-bottom-color: #991b1b; }
-        .btn-amber { background-color: #f59e0b; color: #78350f; border-bottom-color: #b45309; }
-        .btn-blue { background-color: #3b82f6; color: white; border-bottom-color: #1e40af; }
-        .btn-green { background-color: #10b981; color: white; border-bottom-color: #047857; }
+        .btn-action:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-action:active { border-bottom-width: 0px; transform: translateY(3px); margin-bottom: 3px; }
         .btn-slate { background-color: #334155; color: white; border-bottom-color: #0f172a; }
 
         /* Custom Scrollbar */
@@ -105,7 +111,7 @@
                 <h2 id="header-title" class="text-xl font-bold text-slate-800">Operational Dashboard</h2>
                 <div id="live-clock" class="text-sm bg-slate-100 px-3 py-1 rounded text-slate-500 font-mono border">00:00:00</div>
             </div>
-            <button onclick="resetSimulation()" class="btn-action bg-slate-100 text-slate-600 px-4 py-2 rounded text-sm font-bold border border-slate-200 hover:bg-slate-200">
+            <button onclick="resetSimulation()" class="btn-action btn-slate bg-slate-100 text-slate-600 px-4 py-2 rounded text-sm font-bold border border-slate-200 hover:bg-slate-200">
                 <i class="fa-solid fa-rotate-right mr-1"></i> Reset System
             </button>
         </header>
@@ -187,13 +193,13 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="card h-80 flex flex-col">
-                        <h3 class="font-bold mb-3 text-slate-700">👥 Workforce Quick Actions</h3>
+                        <h3 class="font-bold mb-3 text-slate-700">👥 Workforce Status</h3>
                         <div class="flex-1 overflow-y-auto">
                             <table class="w-full text-left text-sm"><tbody id="dash-workforce-table"></tbody></table>
                         </div>
                     </div>
                     <div class="card h-80 flex flex-col">
-                        <h3 class="font-bold mb-3 text-slate-700">🔧 Asset Maintenance Queue</h3>
+                        <h3 class="font-bold mb-3 text-slate-700">🔧 Asset Status Queue</h3>
                         <div class="flex-1 overflow-y-auto">
                             <table class="w-full text-left text-sm"><tbody id="dash-resource-table"></tbody></table>
                         </div>
@@ -228,13 +234,10 @@
                 <div class="card">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-bold text-xl text-slate-700">Full Employee Roster</h3>
-                        <button onclick="actionRestAll()" class="btn-action btn-slate px-3 py-2 rounded text-xs font-bold">
-                            <i class="fa-solid fa-coffee"></i> Force Team Break
-                        </button>
-                    </div>
+                        </div>
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 border-b text-slate-500 uppercase text-xs">
-                            <tr><th class="p-4">Name</th><th class="p-4">Role</th><th class="p-4">Fatigue</th><th class="p-4">Score</th><th class="p-4 text-right">Action</th></tr>
+                            <tr><th class="p-4">Name</th><th class="p-4">Role</th><th class="p-4">Fatigue</th><th class="p-4">Score</th><th class="p-4 text-right">Status</th></tr>
                         </thead>
                         <tbody id="full-workforce-table" class="divide-y"></tbody>
                     </table>
@@ -246,7 +249,7 @@
                     <h3 class="font-bold text-xl mb-4 text-slate-700">Asset Health Status</h3>
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 border-b text-slate-500 uppercase text-xs">
-                            <tr><th class="p-4">Machine</th><th class="p-4">Type</th><th class="p-4">Health</th><th class="p-4 text-right">Action</th></tr>
+                            <tr><th class="p-4">Machine</th><th class="p-4">Type</th><th class="p-4">Health</th><th class="p-4 text-right">Status</th></tr>
                         </thead>
                         <tbody id="full-resource-table" class="divide-y"></tbody>
                     </table>

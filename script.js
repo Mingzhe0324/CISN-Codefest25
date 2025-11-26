@@ -1,13 +1,5 @@
 /**
  * XENBER ENTERPRISE OPS LOGIC
- * ===========================
- * * TABLE OF CONTENTS:
- * 1. CSV Data & Math (Linear Regression)
- * 2. Database State (The "Brain" of the app)
- * 3. Charts & Rendering (Drawing the screen)
- * 4. User Actions (BUTTONS with PROMPTS)
- * 5. Simulation Loop (The Heartbeat)
- * 6. Intelligent Business Chatbot (The "Advisor")
  */
 
 // ==========================================
@@ -88,15 +80,19 @@ const database = {
     nextSimulatedHour: 14, 
     
     employees: [
-        { name: "Sarah J.", role: "Engineer", fatigue: 20, score: 95 },
-        { name: "Mike R.", role: "Logistics", fatigue: 85, score: 60 }, 
-        { name: "Jessica T.", role: "Sales", fatigue: 40, score: 88 },
-        { name: "David B.", role: "Manager", fatigue: 55, score: 75 }
+        { name: "Sarah J.", role: "Engineer", fatigue: 30, score: 135 },
+        { name: "Mike R.", role: "Logistics", fatigue: 52, score: 65 }, 
+        { name: "Jessica T.", role: "Sales", fatigue: 10, score: 88 },
+        { name: "David B.", role: "Manager", fatigue: 85, score: 75 },
+        { name: "Alex K.", role: "Intern", fatigue: 20, score: 90 },
+        { name: "Priya M.", role: "DevOps", fatigue: 95, score: 55 }
     ],
     machines: [
-        { name: "Server Cluster A", type: "IT", health: 98 },
+        { name: "Server Cluster A", type: "IT", health: 90 },
         { name: "Assembly Line 1", type: "Factory", health: 45 }, 
-        { name: "Delivery Truck 4", type: "Fleet", health: 80 }
+        { name: "Delivery Truck 4", type: "Fleet", health: 60 },
+        { name: "Cooling System", type: "Facility", health: 20 },
+        { name: "Packaging Bot", type: "Factory", health: 85 }
     ]
 };
 
@@ -148,8 +144,8 @@ function updateScreen() {
     document.getElementById('kpi-savings').innerText = "$" + database.companySavings.toLocaleString();
     
     let riskCount = 0;
-    database.employees.forEach(e => { if(e.fatigue > 70) riskCount++; });
-    database.machines.forEach(m => { if(m.health < 60) riskCount++; });
+    database.employees.forEach(e => { if(e.fatigue > 80) riskCount++; });
+    database.machines.forEach(m => { if(m.health < 40) riskCount++; });
     document.getElementById('kpi-alerts').innerText = riskCount;
 
     const latest = historicalData[historicalData.length - 1];
@@ -203,7 +199,7 @@ function updateScreen() {
     dashboardChart.data.datasets[0].data = database.loadHistory;
     dashboardChart.update();
     
-    // REDRAW TABLES EVERY UPDATE
+    // REDRAW TABLES EVERY UPDATE TO SHOW NEW STATUS
     drawTables();
     
     const advisorBox = document.getElementById('advisor-feed');
@@ -220,50 +216,72 @@ function drawTables() {
     
     // Employees
     database.employees.forEach((e, i) => {
-        let btn = "", bg = "";
+        let badgeClass = "";
+        let icon = "";
+        let statusText = "";
         
-        // LOGIC FOR BUTTON TYPES
-        if (e.fatigue > 80) { 
-            // CRITICAL -> RED BUTTON
-            btn = `<button onclick="actionRest(${i})" class="btn-action btn-red px-3 py-1 rounded text-xs font-bold w-full"><i class="fa-solid fa-bed"></i> URGENT REST</button>`; 
-            bg = "bg-red-50"; 
-        } else if (e.fatigue > 50) { 
-            // WARNING -> AMBER BUTTON
-            btn = `<button onclick="actionRest(${i})" class="btn-action btn-amber px-3 py-1 rounded text-xs font-bold w-full"><i class="fa-solid fa-coffee"></i> BREAK</button>`; 
+        // DYNAMIC STATUS LOGIC FOR EMPLOYEES
+        if (e.fatigue > 90) { 
+            badgeClass = "badge-red";
+            icon = "fa-fire";
+            statusText = "BURNOUT RISK";
+        } else if (e.fatigue > 70) { 
+            badgeClass = "badge-amber";
+            icon = "fa-battery-quarter";
+            statusText = "TIRED";
+        } else if (e.fatigue > 30) {
+            badgeClass = "badge-blue";
+            icon = "fa-briefcase";
+            statusText = "WORKING";
         } else {
-            // HEALTHY -> BLUE BUTTON
-            btn = `<button onclick="actionTrain(${i})" class="btn-action btn-blue px-3 py-1 rounded text-xs font-bold w-full"><i class="fa-solid fa-book-open"></i> UPSKILL</button>`; 
+            badgeClass = "badge-green";
+            icon = "fa-bolt";
+            statusText = "PEAK PERF.";
         }
-        
-        // ADD TO FULL TABLE
-        fullW += `<tr class="border-b ${bg}"><td class="p-4 font-bold">${e.name}</td><td class="p-4">${e.role}</td><td class="p-4">${e.fatigue}%</td><td class="p-4">${e.score}</td><td class="p-4 text-right w-32">${btn}</td></tr>`;
 
-        // ADD TO DASHBOARD WIDGET (ALL ROWS ARE VISIBLE AND PRESSABLE)
-        dashW += `<tr class="border-b"><td class="p-3 font-bold text-xs">${e.name} <span class="text-slate-400 text-[10px] ml-1">(${e.fatigue}%)</span></td><td class="p-3 text-right">${btn}</td></tr>`;
+        // CREATE BADGE HTML
+        let badge = `<span class="status-badge ${badgeClass}"><i class="fa-solid ${icon} mr-1"></i> ${statusText}</span>`;
+        
+        // Populate Full Table
+        fullW += `<tr class="border-b"><td class="p-4 font-bold">${e.name}</td><td class="p-4">${e.role}</td><td class="p-4">${e.fatigue}%</td><td class="p-4">${e.score}</td><td class="p-4 text-right w-36">${badge}</td></tr>`;
+
+        // Populate Dashboard Widget
+        dashW += `<tr class="border-b"><td class="p-3 font-bold text-xs">${e.name} <span class="text-slate-400 text-[10px] ml-1">(${e.fatigue}%)</span></td><td class="p-3 text-right">${badge}</td></tr>`;
     });
 
-    // Machines
+    // Machines (Asset Maintenance Queue)
     database.machines.forEach((m, i) => {
-        let btn = "", bg = "";
+        let badgeClass = "";
+        let icon = "";
+        let statusText = "";
         
-        // LOGIC FOR BUTTON TYPES
-        if (m.health < 50) { 
-            // BROKEN -> RED BUTTON
-            btn = `<button onclick="actionFix(${i})" class="btn-action btn-red px-3 py-1 rounded text-xs font-bold w-full"><i class="fa-solid fa-wrench"></i> FIX NOW</button>`; 
-            bg = "bg-red-50"; 
-        } else if (m.health < 80) {
-            // NEEDS SERVICE -> AMBER BUTTON
-            btn = `<button onclick="actionFix(${i})" class="btn-action btn-amber px-3 py-1 rounded text-xs font-bold w-full"><i class="fa-solid fa-oil-can"></i> SERVICE</button>`; 
+        // DYNAMIC STATUS LOGIC FOR MACHINES
+        if (m.health < 40) { 
+            badgeClass = "badge-red";
+            icon = "fa-circle-xmark";
+            statusText = "FAILURE";
+        } else if (m.health < 70) {
+            badgeClass = "badge-amber";
+            icon = "fa-triangle-exclamation";
+            statusText = "DEGRADING";
+        } else if (m.health < 90) {
+            badgeClass = "badge-blue";
+            icon = "fa-wrench";
+            statusText = "OPERATIONAL";
         } else {
-            // OPTIMIZED -> GREEN BUTTON
-            btn = `<button onclick="actionFix(${i})" class="btn-action btn-green px-3 py-1 rounded text-xs font-bold w-full"><i class="fa-solid fa-sliders"></i> TUNE UP</button>`; 
+            badgeClass = "badge-green";
+            icon = "fa-check-circle";
+            statusText = "OPTIMAL";
         }
         
-        // ADD TO FULL TABLE
-        fullR += `<tr class="border-b ${bg}"><td class="p-4 font-bold">${m.name}</td><td class="p-4">${m.type}</td><td class="p-4">${Math.floor(m.health)}%</td><td class="p-4 text-right w-32">${btn}</td></tr>`;
+        // CREATE BADGE HTML
+        let badge = `<span class="status-badge ${badgeClass}"><i class="fa-solid ${icon} mr-1"></i> ${statusText}</span>`;
         
-        // ADD TO DASHBOARD WIDGET (ALL ROWS ARE VISIBLE AND PRESSABLE)
-        dashR += `<tr class="border-b"><td class="p-3 font-bold text-xs">${m.name} <span class="text-slate-400 text-[10px] ml-1">(${m.health}%)</span></td><td class="p-3 text-right">${btn}</td></tr>`;
+        // Populate Full Table
+        fullR += `<tr class="border-b"><td class="p-4 font-bold">${m.name}</td><td class="p-4">${m.type}</td><td class="p-4">${Math.floor(m.health)}%</td><td class="p-4 text-right w-36">${badge}</td></tr>`;
+        
+        // Populate Dashboard Widget
+        dashR += `<tr class="border-b"><td class="p-3 font-bold text-xs">${m.name} <span class="text-slate-400 text-[10px] ml-1">(${m.health}%)</span></td><td class="p-3 text-right">${badge}</td></tr>`;
     });
 
     if(document.getElementById('full-workforce-table')) document.getElementById('full-workforce-table').innerHTML = fullW;
@@ -273,7 +291,7 @@ function drawTables() {
 }
 
 // ==========================================
-// PART 4: USER ACTIONS (PRESSABLE + PROMPTS)
+// PART 4: USER ACTIONS
 // ==========================================
 
 function switchView(viewName) {
@@ -294,27 +312,6 @@ function toggleCloud() {
     alert("System Notification: Data Source switched to " + database.currentCloud);
 }
 
-// ----------------------------------------------------
-// DYNAMIC PROMPT LOGIC
-// ----------------------------------------------------
-
-function actionRest(index) {
-    const emp = database.employees[index];
-    let msg = "";
-    
-    if (emp.fatigue > 80) {
-        msg = `⚠️ CRITICAL AUTHORIZATION:\n\n${emp.name} is dangerously fatigued (${emp.fatigue}%). \nAuthorize URGENT PAID LEAVE immediately?`;
-    } else {
-        msg = `☕ Break Request:\n\nApprove standard 15-min break for ${emp.name}? \n(Fatigue: ${emp.fatigue}%)`;
-    }
-    
-    if (confirm(msg)) {
-        emp.fatigue = 0; // Reset fatigue
-        emp.score += 5;  // Morale boost
-        updateScreen(); // INSTANTLY REFRESH UI
-    }
-}
-
 function actionRestAll() {
     let userChoice = confirm(`⚠️ EXECUTIVE ORDER:\n\nSend ENTIRE STAFF on break? \nThis will reset all fatigue to 0% but halt production for 1 hour.`);
     if (userChoice) {
@@ -323,43 +320,16 @@ function actionRestAll() {
     }
 }
 
-function actionTrain(index) {
-    const emp = database.employees[index];
-    let userChoice = confirm(`📚 Professional Development:\n\nPurchase "Advanced AI Workflow" course for ${emp.name}? \n\nCost: $200 \nProjected Score Gain: +10`);
-    
-    if (userChoice == true) {
-        emp.score += 10;
-        database.companySavings -= 200;
-        updateScreen(); // INSTANTLY REFRESH UI
-    }
-}
-
-function actionFix(index) {
-    const machine = database.machines[index];
-    let cost, type, msg;
-
-    if (machine.health < 50) {
-        cost = 1000; type = "EMERGENCY REPAIR";
-        msg = `🚨 PRIORITY ALERT:\n\n${machine.name} is failing (${machine.health}%). \nAuthorize Emergency Repair Crew? \n\nCost: $${cost}`;
-    } else if (machine.health < 80) {
-        cost = 500; type = "Standard Service";
-        msg = `🔧 Maintenance Request:\n\nSchedule standard service for ${machine.name}. \n\nCost: $${cost}`;
-    } else {
-        cost = 100; type = "Optimization Tune Up"; 
-        msg = `✨ Optimization:\n\nPerform high-performance tuning on ${machine.name}? \n\nCost: $${cost}`;
-    }
-    
-    if (confirm(msg)) {
-        machine.health = 100;
-        database.companySavings -= cost;
-        updateScreen(); // INSTANTLY REFRESH UI
-    }
-}
-
 function resetSimulation() { location.reload(); }
 
+window.switchView = switchView;
+window.toggleCloud = toggleCloud;
+window.resetSimulation = resetSimulation;
+window.actionRestAll = actionRestAll;
+
+
 // ==========================================
-// PART 5: SIMULATION LOOP
+// PART 5: SIMULATION LOOP (CHANGES STATUS AUTOMATICALLY)
 // ==========================================
 
 setInterval(() => {
@@ -380,12 +350,16 @@ setInterval(() => {
     database.timeLabels.push(nextTime);
     database.timeLabels.shift();
 
-    // Degrade health over time to create problems to fix
+    // THIS LOOP DRIVES THE STATUS CHANGES
+    // Machines lose health -> Status changes from Optimal to Degrading to Failure
     database.machines.forEach(machine => {
-        if(machine.health > 0) machine.health -= 2; 
+        if(machine.health > 0) machine.health -= 5; // Faster degradation to see changes quicker
+        if(machine.health < 0) machine.health = 0;
     });
+    
+    // Employees gain fatigue -> Status changes from Peak to Tired to Burnout
     database.employees.forEach(emp => {
-        if(emp.fatigue < 100) emp.fatigue += 1;
+        if(emp.fatigue < 100) emp.fatigue += 3; // Faster fatigue to see changes quicker
     });
 
     updateScreen();
