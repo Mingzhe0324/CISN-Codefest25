@@ -85,7 +85,10 @@ function calculateTrendAndForecast(dataArray, daysToPredict) {
 const historicalData = parseCSV(csvRawData);
 const pastRevenue = historicalData.map(d => d.Daily_Revenue);
 const pastLeads = historicalData.map(d => d.New_Leads * 300); 
-const pastDates = historicalData.map(d => d.Date.slice(5)); 
+const pastDates = historicalData.map(d => {
+    const parts = d.Date.split('/'); // Splits "1/11/2025" into ["1", "11", "2025"]
+    return `${parts[1]}-${parts[0]}`; // Returns "11-1" (Month-Day) to match your future date format
+});
 const pastRisks = historicalData.map(d => mapRiskToNumber(d.Risk_Flag));
 const futureRisks = calculateTrendAndForecast(pastRisks, 7).map(v => Math.min(Math.max(Math.round(v), 0), 3));
 const futureRevenue = calculateTrendAndForecast(pastRevenue, 7);
