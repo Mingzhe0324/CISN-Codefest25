@@ -1,9 +1,10 @@
 /**
  * XENBER ENTERPRISE OPS LOGIC
+ * UPDATED: Extended CSV & Risk Forecasting
  */
 
 // ==========================================
-// PART 1: CSV DATA & MATH HELPERS
+// PART 1: CSV DATA (EXTENDED TO NOV 30)
 // ==========================================
 const csvRawData = `Date,Daily_Revenue,New_Leads,Active_Users,Avg_Employee_Mood_Score,Overtime_Hours_Logged,Code_Commits,System_Error_Rate,Cloud_Cost,Risk_Flag
 2025-11-01,15400,45,1250,8.5,12,85,0.02%,450,Low
@@ -20,7 +21,22 @@ const csvRawData = `Date,Daily_Revenue,New_Leads,Active_Users,Avg_Employee_Mood_
 2025-11-12,16800,56,1370,8.2,16,92,0.08%,480,Low
 2025-11-13,17500,62,1420,8.0,22,100,0.10%,520,Medium
 2025-11-14,18200,65,1450,7.6,35,125,0.45%,610,Medium
-2025-11-15,19000,70,1500,7.4,40,135,0.90%,700,High`;
+2025-11-15,19000,70,1500,7.4,40,135,0.90%,700,High
+2025-11-16,19500,72,1550,7.3,38,140,0.85%,720,Medium
+2025-11-17,19800,75,1600,7.1,42,145,1.10%,750,High
+2025-11-18,20500,80,1650,7.0,45,150,1.50%,800,High
+2025-11-19,21200,85,1700,6.9,50,155,2.10%,880,Critical
+2025-11-20,18500,60,1600,7.5,30,120,0.50%,600,Medium
+2025-11-21,19000,65,1620,7.8,25,110,0.20%,550,Low
+2025-11-22,19500,68,1650,8.0,20,105,0.10%,530,Low
+2025-11-23,20000,70,1680,8.1,18,100,0.08%,520,Low
+2025-11-24,20800,75,1720,7.9,22,115,0.15%,540,Low
+2025-11-25,21500,78,1750,7.7,28,125,0.30%,580,Medium
+2025-11-26,22100,82,1800,7.5,35,135,0.60%,650,Medium
+2025-11-27,22800,85,1850,7.3,40,145,0.95%,710,High
+2025-11-28,23500,88,1900,7.1,45,155,1.20%,780,High
+2025-11-29,24200,90,1950,6.8,55,165,2.80%,900,Critical
+2025-11-30,25000,95,2000,6.5,60,180,3.50%,980,Critical`;
 
 function parseCSV(csv) {
     const lines = csv.trim().split('\n');
@@ -37,6 +53,18 @@ function parseCSV(csv) {
     });
 }
 
+// MATH HELPER: Convert Risk String to Number for Charting
+function mapRiskToNumber(risk) {
+    switch(risk) {
+        case 'Low': return 0;
+        case 'Medium': return 1;
+        case 'High': return 2;
+        case 'Critical': return 3;
+        default: return 0;
+    }
+}
+
+// MATH HELPER: Linear Regression + Noise
 function calculateTrendAndForecast(dataArray, daysToPredict) {
     const n = dataArray.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
@@ -48,20 +76,29 @@ function calculateTrendAndForecast(dataArray, daysToPredict) {
     let predictions = [];
     for (let i = 1; i <= daysToPredict; i++) {
         let val = (slope * (n - 1 + i)) + intercept;
-        let randomVariance = (Math.random() * val * 0.05) - (val * 0.025);
-        predictions.push(Math.round(val + randomVariance));
+        // Add some chaotic variance for realism
+        let randomVariance = (Math.random() * val * 0.1) - (val * 0.05);
+        let result = val + randomVariance;
+        if (result < 0) result = 0; // Prevent negative values
+        predictions.push(result);
     }
     return predictions;
 }
 
 const historicalData = parseCSV(csvRawData);
 const pastRevenue = historicalData.map(d => d.Daily_Revenue);
-const pastLeads = historicalData.map(d => d.New_Leads * 300); 
+const pastLeads = historicalData.map(d => d.New_Leads * 300); // Scaling for visual comparison
 const pastDates = historicalData.map(d => d.Date.slice(5)); 
+
+// RISK DATA PREP
+const pastRisks = historicalData.map(d => mapRiskToNumber(d.Risk_Flag));
+// Simple heuristic forecast for Risk (trending upwards slightly due to growth)
+const futureRisks = calculateTrendAndForecast(pastRisks, 7).map(v => Math.min(Math.max(Math.round(v), 0), 3));
+
 const futureRevenue = calculateTrendAndForecast(pastRevenue, 7);
 const futureLeads = calculateTrendAndForecast(pastLeads, 7);
 
-let lastDate = new Date("2025-11-15");
+let lastDate = new Date("2025-11-30"); // Updated to new CSV end date
 let futureDates = [];
 for(let i=1; i<=7; i++) {
     let d = new Date(lastDate);
@@ -100,28 +137,74 @@ const database = {
 // PART 3: SETUP (CHARTS & DISPLAY)
 // ==========================================
 
+const allLabels = [...pastDates, ...futureDates];
+
+// --- MAIN CHART: ACTIVE RISK FORECAST ---
+// Merging past risk and future risk for charting
+const chartDataRiskPast = [...pastRisks, ...Array(7).fill(null)];
+const chartDataRiskFuture = [...Array(pastRisks.length).fill(null).map((_, i) => i === pastRisks.length - 1 ? pastRisks[i] : null), ...futureRisks];
+// We need to fill the gap at the connecting point to make the line continuous
+chartDataRiskFuture[pastRisks.length - 1] = pastRisks[pastRisks.length - 1];
+
 const chartContext = document.getElementById('mainChart').getContext('2d');
 const dashboardChart = new Chart(chartContext, {
     type: 'line',
     data: {
-        labels: database.timeLabels,
+        labels: allLabels,
         datasets: [{ 
-            label: 'Actual Load', 
-            data: database.loadHistory, 
-            borderColor: '#3b82f6', 
-            backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+            label: 'Historical Risk Level', 
+            data: chartDataRiskPast, 
+            borderColor: '#64748b', 
+            backgroundColor: 'rgba(100, 116, 139, 0.1)', 
             fill: true, 
-            tension: 0.4 
+            tension: 0.2,
+            stepped: true // Makes it look like distinct levels
+        },
+        { 
+            label: 'Predicted Risk Trend', 
+            data: chartDataRiskFuture, 
+            borderColor: '#ef4444', 
+            borderDash: [5, 5],
+            backgroundColor: 'rgba(239, 68, 68, 0.05)', 
+            fill: true, 
+            tension: 0.2,
+            stepped: true
         }]
     },
-    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 500 } }
+    options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        scales: {
+            y: {
+                min: 0,
+                max: 3.5,
+                ticks: {
+                    callback: function(value) {
+                        if(value === 0) return 'Low';
+                        if(value === 1) return 'Medium';
+                        if(value === 2) return 'High';
+                        if(value === 3) return 'CRITICAL';
+                        return '';
+                    }
+                }
+            }
+        }
+    }
 });
 
-const allLabels = [...pastDates, ...futureDates];
+
+// --- FORECAST CHART (REVENUE) ---
 const chartDataRevPast = [...pastRevenue, ...Array(7).fill(null)];
-const chartDataRevFuture = [...Array(14).fill(null), pastRevenue[pastRevenue.length-1], ...futureRevenue];
+const chartDataRevFuture = [...Array(pastRevenue.length).fill(null), pastRevenue[pastRevenue.length-1], ...futureRevenue];
+// Fix gap for revenue chart too
+chartDataRevFuture[pastRevenue.length] = pastRevenue[pastRevenue.length-1]; // Align index
+// Actually simpler way for second dataset:
+const chartDataRevFutureFixed = Array(pastRevenue.length - 1).fill(null);
+chartDataRevFutureFixed.push(pastRevenue[pastRevenue.length-1]);
+futureRevenue.forEach(r => chartDataRevFutureFixed.push(r));
+
 const chartDataLeadsPast = [...pastLeads, ...Array(7).fill(null)];
-const chartDataLeadsFuture = [...Array(14).fill(null), pastLeads[pastLeads.length-1], ...futureLeads];
+const chartDataLeadsFuture = [...Array(pastLeads.length-1).fill(null), pastLeads[pastLeads.length-1], ...futureLeads];
 
 const ctxForecast = document.getElementById('forecastChart').getContext('2d');
 const forecastChart = new Chart(ctxForecast, {
@@ -130,7 +213,7 @@ const forecastChart = new Chart(ctxForecast, {
         labels: allLabels,
         datasets: [
             { label: 'Revenue (Actual)', data: chartDataRevPast, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 },
-            { label: 'Revenue (Forecast)', data: chartDataRevFuture, borderColor: '#10b981', borderDash: [5, 5], pointStyle: 'rectRot', tension: 0.3 },
+            { label: 'Revenue (Forecast)', data: chartDataRevFutureFixed, borderColor: '#10b981', borderDash: [5, 5], pointStyle: 'rectRot', tension: 0.3 },
             { label: 'Leads (Indicator)', data: chartDataLeadsPast, borderColor: '#f59e0b', tension: 0.3 },
             { label: 'Leads (Forecast)', data: chartDataLeadsFuture, borderColor: '#f59e0b', borderDash: [5, 5], tension: 0.3 }
         ]
@@ -190,14 +273,12 @@ function updateScreen() {
         document.getElementById('forecast-insight').innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div class="p-4 bg-white rounded border"><div class="text-xs text-slate-400 uppercase">Last Revenue</div><div class="font-black text-2xl text-slate-700">$${currRev.toLocaleString()}</div></div>
-            <div class="p-4 bg-white rounded border border-purple-200"><div class="text-xs text-slate-400 uppercase">7-Day Prediction</div><div class="font-black text-2xl text-purple-600">$${projRev.toLocaleString()}</div></div>
-            <div class="p-4 bg-white rounded border"><div class="text-xs text-slate-400 uppercase">Trend</div><div class="font-black text-2xl ${diff > 0 ? 'text-green-500' : 'text-red-500'}">${diff > 0 ? '▲ UP' : '▼ DOWN'} $${Math.abs(diff).toLocaleString()}</div></div>
+            <div class="p-4 bg-white rounded border border-purple-200"><div class="text-xs text-slate-400 uppercase">7-Day Prediction</div><div class="font-black text-2xl text-purple-600">$${Math.round(projRev).toLocaleString()}</div></div>
+            <div class="p-4 bg-white rounded border"><div class="text-xs text-slate-400 uppercase">Trend</div><div class="font-black text-2xl ${diff > 0 ? 'text-green-500' : 'text-red-500'}">${diff > 0 ? '▲ UP' : '▼ DOWN'} $${Math.abs(Math.round(diff)).toLocaleString()}</div></div>
         </div>`;
     }
 
-    dashboardChart.data.labels = database.timeLabels; 
-    dashboardChart.data.datasets[0].data = database.loadHistory;
-    dashboardChart.update();
+    // NOTE: Removed dashboardChart updates here because we are no longer using the "Live Load" loop for the main chart.
     
     // REDRAW TABLES EVERY UPDATE TO SHOW NEW STATUS
     drawTables();
