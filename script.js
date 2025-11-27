@@ -1,6 +1,6 @@
 /**
  * XENBER ENTERPRISE OPS LOGIC
- * UPDATED: Extended CSV & Risk Forecasting
+ * UPDATED: Persistent Weather & Risk Logic
  */
 
 // ==========================================
@@ -53,7 +53,6 @@ function parseCSV(csv) {
     });
 }
 
-// MATH HELPER: Convert Risk String to Number for Charting
 function mapRiskToNumber(risk) {
     switch(risk) {
         case 'Low': return 0;
@@ -64,7 +63,6 @@ function mapRiskToNumber(risk) {
     }
 }
 
-// MATH HELPER: Linear Regression + Noise
 function calculateTrendAndForecast(dataArray, daysToPredict) {
     const n = dataArray.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
@@ -76,10 +74,9 @@ function calculateTrendAndForecast(dataArray, daysToPredict) {
     let predictions = [];
     for (let i = 1; i <= daysToPredict; i++) {
         let val = (slope * (n - 1 + i)) + intercept;
-        // Add some chaotic variance for realism
         let randomVariance = (Math.random() * val * 0.1) - (val * 0.05);
         let result = val + randomVariance;
-        if (result < 0) result = 0; // Prevent negative values
+        if (result < 0) result = 0; 
         predictions.push(result);
     }
     return predictions;
@@ -87,18 +84,14 @@ function calculateTrendAndForecast(dataArray, daysToPredict) {
 
 const historicalData = parseCSV(csvRawData);
 const pastRevenue = historicalData.map(d => d.Daily_Revenue);
-const pastLeads = historicalData.map(d => d.New_Leads * 300); // Scaling for visual comparison
+const pastLeads = historicalData.map(d => d.New_Leads * 300); 
 const pastDates = historicalData.map(d => d.Date.slice(5)); 
-
-// RISK DATA PREP
 const pastRisks = historicalData.map(d => mapRiskToNumber(d.Risk_Flag));
-// Simple heuristic forecast for Risk (trending upwards slightly due to growth)
 const futureRisks = calculateTrendAndForecast(pastRisks, 7).map(v => Math.min(Math.max(Math.round(v), 0), 3));
-
 const futureRevenue = calculateTrendAndForecast(pastRevenue, 7);
 const futureLeads = calculateTrendAndForecast(pastLeads, 7);
 
-let lastDate = new Date("2025-11-30"); // Updated to new CSV end date
+let lastDate = new Date("2025-11-30"); 
 let futureDates = [];
 for(let i=1; i<=7; i++) {
     let d = new Date(lastDate);
@@ -130,7 +123,8 @@ const database = {
         { name: "Delivery Truck 4", type: "Fleet", health: 60 },
         { name: "Cooling System", type: "Facility", health: 20 },
         { name: "Packaging Bot", type: "Factory", health: 85 }
-    ]
+    ],
+    weatherForecast: []
 };
 
 // ==========================================
@@ -140,10 +134,8 @@ const database = {
 const allLabels = [...pastDates, ...futureDates];
 
 // --- MAIN CHART: ACTIVE RISK FORECAST ---
-// Merging past risk and future risk for charting
 const chartDataRiskPast = [...pastRisks, ...Array(7).fill(null)];
 const chartDataRiskFuture = [...Array(pastRisks.length).fill(null).map((_, i) => i === pastRisks.length - 1 ? pastRisks[i] : null), ...futureRisks];
-// We need to fill the gap at the connecting point to make the line continuous
 chartDataRiskFuture[pastRisks.length - 1] = pastRisks[pastRisks.length - 1];
 
 const chartContext = document.getElementById('mainChart').getContext('2d');
@@ -158,7 +150,7 @@ const dashboardChart = new Chart(chartContext, {
             backgroundColor: 'rgba(100, 116, 139, 0.1)', 
             fill: true, 
             tension: 0.2,
-            stepped: true // Makes it look like distinct levels
+            stepped: true
         },
         { 
             label: 'Predicted Risk Trend', 
@@ -195,10 +187,6 @@ const dashboardChart = new Chart(chartContext, {
 
 // --- FORECAST CHART (REVENUE) ---
 const chartDataRevPast = [...pastRevenue, ...Array(7).fill(null)];
-const chartDataRevFuture = [...Array(pastRevenue.length).fill(null), pastRevenue[pastRevenue.length-1], ...futureRevenue];
-// Fix gap for revenue chart too
-chartDataRevFuture[pastRevenue.length] = pastRevenue[pastRevenue.length-1]; // Align index
-// Actually simpler way for second dataset:
 const chartDataRevFutureFixed = Array(pastRevenue.length - 1).fill(null);
 chartDataRevFutureFixed.push(pastRevenue[pastRevenue.length-1]);
 futureRevenue.forEach(r => chartDataRevFutureFixed.push(r));
@@ -278,9 +266,6 @@ function updateScreen() {
         </div>`;
     }
 
-    // NOTE: Removed dashboardChart updates here because we are no longer using the "Live Load" loop for the main chart.
-    
-    // REDRAW TABLES EVERY UPDATE TO SHOW NEW STATUS
     drawTables();
     
     const advisorBox = document.getElementById('advisor-feed');
@@ -295,73 +280,29 @@ function updateScreen() {
 function drawTables() {
     let fullW = "", dashW = "", fullR = "", dashR = "";
     
-    // Employees
     database.employees.forEach((e, i) => {
-        let badgeClass = "";
-        let icon = "";
-        let statusText = "";
+        let badgeClass = "", icon = "", statusText = "";
         
-        // DYNAMIC STATUS LOGIC FOR EMPLOYEES
-        if (e.fatigue > 90) { 
-            badgeClass = "badge-red";
-            icon = "fa-fire";
-            statusText = "BURNOUT RISK";
-        } else if (e.fatigue > 70) { 
-            badgeClass = "badge-amber";
-            icon = "fa-battery-quarter";
-            statusText = "TIRED";
-        } else if (e.fatigue > 30) {
-            badgeClass = "badge-blue";
-            icon = "fa-briefcase";
-            statusText = "WORKING";
-        } else {
-            badgeClass = "badge-green";
-            icon = "fa-bolt";
-            statusText = "PEAK PERF.";
-        }
+        if (e.fatigue > 90) { badgeClass = "badge-red"; icon = "fa-fire"; statusText = "BURNOUT RISK"; } 
+        else if (e.fatigue > 70) { badgeClass = "badge-amber"; icon = "fa-battery-quarter"; statusText = "TIRED"; } 
+        else if (e.fatigue > 30) { badgeClass = "badge-blue"; icon = "fa-briefcase"; statusText = "WORKING"; } 
+        else { badgeClass = "badge-green"; icon = "fa-bolt"; statusText = "PEAK PERF."; }
 
-        // CREATE BADGE HTML
         let badge = `<span class="status-badge ${badgeClass}"><i class="fa-solid ${icon} mr-1"></i> ${statusText}</span>`;
-        
-        // Populate Full Table
         fullW += `<tr class="border-b"><td class="p-4 font-bold">${e.name}</td><td class="p-4">${e.role}</td><td class="p-4">${e.fatigue}%</td><td class="p-4">${e.score}</td><td class="p-4 text-right w-36">${badge}</td></tr>`;
-
-        // Populate Dashboard Widget
         dashW += `<tr class="border-b"><td class="p-3 font-bold text-xs">${e.name} <span class="text-slate-400 text-[10px] ml-1">(${e.fatigue}%)</span></td><td class="p-3 text-right">${badge}</td></tr>`;
     });
 
-    // Machines (Asset Maintenance Queue)
     database.machines.forEach((m, i) => {
-        let badgeClass = "";
-        let icon = "";
-        let statusText = "";
+        let badgeClass = "", icon = "", statusText = "";
         
-        // DYNAMIC STATUS LOGIC FOR MACHINES
-        if (m.health < 40) { 
-            badgeClass = "badge-red";
-            icon = "fa-circle-xmark";
-            statusText = "FAILURE";
-        } else if (m.health < 70) {
-            badgeClass = "badge-amber";
-            icon = "fa-triangle-exclamation";
-            statusText = "DEGRADING";
-        } else if (m.health < 90) {
-            badgeClass = "badge-blue";
-            icon = "fa-wrench";
-            statusText = "OPERATIONAL";
-        } else {
-            badgeClass = "badge-green";
-            icon = "fa-check-circle";
-            statusText = "OPTIMAL";
-        }
+        if (m.health < 40) { badgeClass = "badge-red"; icon = "fa-circle-xmark"; statusText = "FAILURE"; } 
+        else if (m.health < 70) { badgeClass = "badge-amber"; icon = "fa-triangle-exclamation"; statusText = "DEGRADING"; } 
+        else if (m.health < 90) { badgeClass = "badge-blue"; icon = "fa-wrench"; statusText = "OPERATIONAL"; } 
+        else { badgeClass = "badge-green"; icon = "fa-check-circle"; statusText = "OPTIMAL"; }
         
-        // CREATE BADGE HTML
         let badge = `<span class="status-badge ${badgeClass}"><i class="fa-solid ${icon} mr-1"></i> ${statusText}</span>`;
-        
-        // Populate Full Table
         fullR += `<tr class="border-b"><td class="p-4 font-bold">${m.name}</td><td class="p-4">${m.type}</td><td class="p-4">${Math.floor(m.health)}%</td><td class="p-4 text-right w-36">${badge}</td></tr>`;
-        
-        // Populate Dashboard Widget
         dashR += `<tr class="border-b"><td class="p-3 font-bold text-xs">${m.name} <span class="text-slate-400 text-[10px] ml-1">(${m.health}%)</span></td><td class="p-3 text-right">${badge}</td></tr>`;
     });
 
@@ -372,7 +313,113 @@ function drawTables() {
 }
 
 // ==========================================
-// PART 4: USER ACTIONS
+// PART 4: WEATHER & FLOOD INTELLIGENCE MODULE
+// ==========================================
+
+function generateWeatherForecast() {
+    // Prevent regeneration if data already exists for this session
+    if (database.weatherForecast.length > 0) return;
+
+    // Use a random seed per session to keep it static
+    database.weatherForecast = futureDates.slice(0, 5).map(date => {
+        const r = Math.random();
+        let type;
+        if(r < 0.3) type = 'Sunny';
+        else if (r < 0.6) type = 'Cloudy';
+        else if (r < 0.85) type = 'Rainy';
+        else type = 'Stormy';
+        
+        return { date: date, type: type };
+    });
+}
+
+function toggleWeather() {
+    const modal = document.getElementById('weather-modal');
+    const isHidden = modal.classList.contains('modal-hidden');
+    
+    if (isHidden) {
+        // Just render the EXISTING data. Do not regenerate.
+        renderWeatherModal();
+        modal.classList.remove('modal-hidden');
+        modal.classList.add('modal-visible');
+    } else {
+        modal.classList.remove('modal-visible');
+        modal.classList.add('modal-hidden');
+    }
+}
+
+function renderWeatherModal() {
+    const bannerBox = document.getElementById('weather-risk-banner');
+    const iconBox = document.getElementById('weather-risk-icon');
+    const riskText = document.getElementById('weather-risk-text');
+    const wfhText = document.getElementById('weather-wfh-decision');
+    const grid = document.getElementById('weather-forecast-grid');
+    
+    // Analyze 5 days for Flood Risk
+    let rainCount = 0;
+    let stormCount = 0;
+    database.weatherForecast.forEach(d => {
+        if(d.type === 'Rainy') rainCount++;
+        if(d.type === 'Stormy') stormCount++;
+    });
+
+    // Risk Logic
+    let riskLevel = "LOW";
+    if (stormCount >= 1 || rainCount >= 3) riskLevel = "MEDIUM";
+    if (stormCount >= 2 || (rainCount >= 3 && stormCount >= 1)) riskLevel = "HIGH - FLOOD WARNING";
+
+    // UI Updates based on Risk
+    if (riskLevel.includes("HIGH")) {
+        bannerBox.className = "p-4 rounded-xl border border-red-300 bg-red-50 flex items-center gap-4 animate-pulse";
+        iconBox.className = "w-12 h-12 rounded-full flex items-center justify-center bg-red-200 text-red-600 text-2xl";
+        iconBox.innerHTML = '<i class="fa-solid fa-house-flood-water"></i>';
+        riskText.className = "text-lg font-black text-red-700";
+        riskText.innerText = riskLevel;
+        wfhText.className = "text-2xl font-black text-red-600 border-2 border-dashed border-red-300 bg-red-50 p-3 rounded-xl";
+        wfhText.innerText = "🚨 MANDATORY WFH";
+    } else if (riskLevel === "MEDIUM") {
+        bannerBox.className = "p-4 rounded-xl border border-amber-300 bg-amber-50 flex items-center gap-4";
+        iconBox.className = "w-12 h-12 rounded-full flex items-center justify-center bg-amber-200 text-amber-600 text-2xl";
+        iconBox.innerHTML = '<i class="fa-solid fa-cloud-showers-heavy"></i>';
+        riskText.className = "text-lg font-black text-amber-700";
+        riskText.innerText = riskLevel;
+        wfhText.className = "text-2xl font-black text-amber-600 border-2 border-dashed border-amber-300 bg-amber-50 p-3 rounded-xl";
+        wfhText.innerText = "⚠️ HYBRID / OPTIONAL";
+    } else {
+        bannerBox.className = "p-4 rounded-xl border border-green-300 bg-green-50 flex items-center gap-4";
+        iconBox.className = "w-12 h-12 rounded-full flex items-center justify-center bg-green-200 text-green-600 text-2xl";
+        iconBox.innerHTML = '<i class="fa-solid fa-sun"></i>';
+        riskText.className = "text-lg font-black text-green-700";
+        riskText.innerText = riskLevel;
+        wfhText.className = "text-2xl font-black text-green-600 border-2 border-dashed border-green-300 bg-green-50 p-3 rounded-xl";
+        wfhText.innerText = "🏢 OFFICE OPEN";
+    }
+
+    // Render Grid
+    grid.innerHTML = "";
+    database.weatherForecast.forEach(day => {
+        let icon = "";
+        let color = "";
+        if (day.type === 'Sunny') { icon = "fa-sun"; color = "text-yellow-500"; }
+        if (day.type === 'Cloudy') { icon = "fa-cloud"; color = "text-slate-400"; }
+        if (day.type === 'Rainy') { icon = "fa-cloud-rain"; color = "text-blue-400"; }
+        if (day.type === 'Stormy') { icon = "fa-bolt"; color = "text-purple-600"; }
+
+        grid.innerHTML += `
+            <div class="bg-white border rounded p-2 flex flex-col items-center shadow-sm">
+                <div class="text-[10px] text-slate-400 font-bold mb-1">${day.date}</div>
+                <i class="fa-solid ${icon} ${color} text-xl mb-1"></i>
+                <div class="text-xs font-bold text-slate-700">${day.type}</div>
+            </div>
+        `;
+    });
+}
+
+// Make globally accessible
+window.toggleWeather = toggleWeather;
+
+// ==========================================
+// PART 5: USER ACTIONS
 // ==========================================
 
 function switchView(viewName) {
@@ -410,7 +457,7 @@ window.actionRestAll = actionRestAll;
 
 
 // ==========================================
-// PART 5: SIMULATION LOOP (CHANGES STATUS AUTOMATICALLY)
+// PART 6: SIMULATION LOOP
 // ==========================================
 
 setInterval(() => {
@@ -431,23 +478,20 @@ setInterval(() => {
     database.timeLabels.push(nextTime);
     database.timeLabels.shift();
 
-    // THIS LOOP DRIVES THE STATUS CHANGES
-    // Machines lose health -> Status changes from Optimal to Degrading to Failure
     database.machines.forEach(machine => {
-        if(machine.health > 0) machine.health -= 5; // Faster degradation to see changes quicker
+        if(machine.health > 0) machine.health -= 5; 
         if(machine.health < 0) machine.health = 0;
     });
     
-    // Employees gain fatigue -> Status changes from Peak to Tired to Burnout
     database.employees.forEach(emp => {
-        if(emp.fatigue < 100) emp.fatigue += 3; // Faster fatigue to see changes quicker
+        if(emp.fatigue < 100) emp.fatigue += 3; 
     });
 
     updateScreen();
 }, 2000);
 
 // ==========================================
-// PART 6: INTELLIGENT ADVISOR (Chatbot)
+// PART 7: INTELLIGENT ADVISOR
 // ==========================================
 
 let isChatVisible = false;
@@ -539,4 +583,5 @@ function generateSmartAnswer(question) {
 }
 
 // Start
+generateWeatherForecast(); // GENERATE WEATHER ONCE ON LOAD
 updateScreen();
