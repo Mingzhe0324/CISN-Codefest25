@@ -613,8 +613,8 @@ function generateSmartAnswer(question) {
         return "✅ <b>Operational Status:</b> All systems are nominal. No immediate interventions required.";
     }
 
-    if (question.includes("cost") || question.includes("money")) {
-        return `I've reviewed the P&L. We have accumulated <b>$${database.companySavings.toLocaleString()}</b> in efficiency savings. <br><br>However, cloud costs are creeping up ($${latest.Cloud_Cost}). I suggest auditing our BigQuery usage patterns to keep margins healthy.`;
+    if (question.includes("cost") || question.includes("money") || question.includes("financials") || question.includes("financial")) {
+        return `I've reviewed the P&L. We have accumulated <b>$${database.companySavings.toLocaleString()}</b> in efficiency savings.`
     }
     
     if (question.includes("staff") || question.includes("team")) {
